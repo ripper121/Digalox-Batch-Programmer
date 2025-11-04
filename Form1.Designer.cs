@@ -30,6 +30,7 @@
         {
             buttonOpen = new Button();
             comboBoxComPorts = new ComboBox();
+            richTextBoxLog = new RichTextBox();
             SuspendLayout();
             // 
             // buttonOpen
@@ -44,17 +45,28 @@
             // 
             // comboBoxComPorts
             // 
+            comboBoxComPorts.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxComPorts.FormattingEnabled = true;
             comboBoxComPorts.Location = new Point(12, 12);
             comboBoxComPorts.Name = "comboBoxComPorts";
             comboBoxComPorts.Size = new Size(151, 28);
             comboBoxComPorts.TabIndex = 1;
             // 
+            // richTextBoxLog
+            // 
+            richTextBoxLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            richTextBoxLog.Location = new Point(12, 46);
+            richTextBoxLog.Name = "richTextBoxLog";
+            richTextBoxLog.Size = new Size(776, 392);
+            richTextBoxLog.TabIndex = 2;
+            richTextBoxLog.Text = "";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(richTextBoxLog);
             Controls.Add(comboBoxComPorts);
             Controls.Add(buttonOpen);
             Name = "Form1";
@@ -68,5 +80,6 @@
 
         private Button buttonOpen;
         private ComboBox comboBoxComPorts;
+        private RichTextBox richTextBoxLog;
     }
 }

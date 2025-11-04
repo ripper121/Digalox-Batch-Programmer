@@ -17,16 +17,57 @@ namespace Digalox_Batch_Programmer
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            /*
-            try
+            // Populate comboBoxComPorts with ports that respond with "TDE" to an identify? query
+            comboBoxComPorts.Items.Clear();
+
+            var ports = SerialPort.GetPortNames();
+            foreach (var port in ports)
             {
-                _serialPort = OpenComPort("COM8");
+                SerialPort? testPort = null;
+                var previous = _serialPort;
+                try
+                {
+                    // Attempt to open the port for testing
+                    testPort = OpenComPort(port);
+
+                    // Temporarily use the test port for SendAndReceive
+                    _serialPort = testPort;
+
+                    var response = SendAndReceive("identify?\r",1000);
+                    if (!string.IsNullOrEmpty(response) && response.IndexOf("TDE", StringComparison.OrdinalIgnoreCase) >=0)
+                    {
+                        comboBoxComPorts.Items.Add(port);
+                    }
+                }
+                catch
+                {
+                    // ignore ports that can't be opened or don't respond
+                }
+                finally
+                {
+                    // restore previous port (do not close it here)
+                    _serialPort = previous;
+
+                    // close and dispose the test port if we created it
+                    if (testPort != null)
+                    {
+                        try
+                        {
+                            if (testPort.IsOpen)
+                                testPort.Close();
+                        }
+                        catch { }
+                        finally
+                        {
+                            testPort.Dispose();
+                        }
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Unable to open COM8: {ex.Message}", "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            */
+
+            // Optionally select the first detected port
+            if (comboBoxComPorts.Items.Count >0)
+                comboBoxComPorts.SelectedIndex =0;
         }
 
         /// <summary>

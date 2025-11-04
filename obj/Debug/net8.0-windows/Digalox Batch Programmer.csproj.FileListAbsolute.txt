@@ -24,3 +24,4 @@ C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-wi
 C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.pdb
 C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.genruntimeconfig.cache
 C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\ref\Digalox Batch Programmer.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.sourcelink.json
