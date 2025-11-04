@@ -17,6 +17,7 @@ namespace Digalox_Batch_Programmer
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            /*
             try
             {
                 _serialPort = OpenComPort("COM8");
@@ -25,6 +26,7 @@ namespace Digalox_Batch_Programmer
             {
                 MessageBox.Show(this, $"Unable to open COM8: {ex.Message}", "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            */
         }
 
         /// <summary>
@@ -136,6 +138,11 @@ namespace Digalox_Batch_Programmer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            closeComPort();
+        }
+
+        void closeComPort()
+        {
             if (_serialPort != null)
             {
                 try
@@ -154,6 +161,7 @@ namespace Digalox_Batch_Programmer
                 }
             }
         }
+
 
         private void buttonOpen_Click(object sender, EventArgs e)
         {

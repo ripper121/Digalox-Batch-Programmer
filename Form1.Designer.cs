@@ -29,11 +29,12 @@
         private void InitializeComponent()
         {
             buttonOpen = new Button();
+            comboBoxComPorts = new ComboBox();
             SuspendLayout();
             // 
             // buttonOpen
             // 
-            buttonOpen.Location = new Point(447, 98);
+            buttonOpen.Location = new Point(169, 12);
             buttonOpen.Name = "buttonOpen";
             buttonOpen.Size = new Size(94, 29);
             buttonOpen.TabIndex = 0;
@@ -41,11 +42,20 @@
             buttonOpen.UseVisualStyleBackColor = true;
             buttonOpen.Click += buttonOpen_Click;
             // 
+            // comboBoxComPorts
+            // 
+            comboBoxComPorts.FormattingEnabled = true;
+            comboBoxComPorts.Location = new Point(12, 12);
+            comboBoxComPorts.Name = "comboBoxComPorts";
+            comboBoxComPorts.Size = new Size(151, 28);
+            comboBoxComPorts.TabIndex = 1;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(comboBoxComPorts);
             Controls.Add(buttonOpen);
             Name = "Form1";
             Text = "Form1";
@@ -57,5 +67,6 @@
         #endregion
 
         private Button buttonOpen;
+        private ComboBox comboBoxComPorts;
     }
 }
