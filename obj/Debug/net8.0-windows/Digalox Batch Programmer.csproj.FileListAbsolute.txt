@@ -1,0 +1,26 @@
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\Digalox Batch Programmer.exe
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\Digalox Batch Programmer.deps.json
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\Digalox Batch Programmer.runtimeconfig.json
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\Digalox Batch Programmer.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\Digalox Batch Programmer.pdb
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\System.IO.Ports.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\linux-arm\native\libSystem.IO.Ports.Native.so
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\linux-arm64\native\libSystem.IO.Ports.Native.so
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\linux-x64\native\libSystem.IO.Ports.Native.so
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\osx-arm64\native\libSystem.IO.Ports.Native.dylib
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\osx-x64\native\libSystem.IO.Ports.Native.dylib
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\unix\lib\net6.0\System.IO.Ports.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\bin\Debug\net8.0-windows\runtimes\win\lib\net6.0\System.IO.Ports.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.csproj.AssemblyReference.cache
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox_Batch_Programmer.Form1.resources
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.csproj.GenerateResource.cache
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.AssemblyInfoInputs.cache
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.AssemblyInfo.cs
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.csproj.CoreCompileInputs.cache
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox .2A52F664.Up2Date
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\refint\Digalox Batch Programmer.dll
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.pdb
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\Digalox Batch Programmer.genruntimeconfig.cache
+C:\Users\ripper121\Documents\GitHub\Digalox-Batch-Programmer\obj\Debug\net8.0-windows\ref\Digalox Batch Programmer.dll

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox Batch Programmer\\Digalox Batch Programmer.csproj": {}
+    "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox Batch Programmer\\Digalox Batch Programmer.csproj": {
+    "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox Batch Programmer\\Digalox Batch Programmer.csproj",
+        "projectUniqueName": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
         "projectName": "Digalox Batch Programmer",
-        "projectPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox Batch Programmer\\Digalox Batch Programmer.csproj",
+        "projectPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
         "packagesPath": "C:\\Users\\ripper121\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox Batch Programmer\\obj\\",
+        "outputPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ripper121\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -45,6 +45,12 @@
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "System.IO.Ports": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
