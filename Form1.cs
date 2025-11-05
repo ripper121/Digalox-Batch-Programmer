@@ -11,6 +11,7 @@ namespace Digalox_Batch_Programmer
     {
         private SerialPort? _serialPort;
         private int sendIDCounter = 0;
+        private bool writingInProgress = false;
 
         public Form1()
         {
@@ -18,6 +19,11 @@ namespace Digalox_Batch_Programmer
         }
 
         private void Form1_Load(object sender, EventArgs e)
+        {
+            scanComPorts();
+        }
+
+        private void scanComPorts()
         {
             // Populate comboBoxComPorts with ports that respond with "TDE" to an identify? query
             comboBoxComPorts.Items.Clear();
@@ -30,7 +36,7 @@ namespace Digalox_Batch_Programmer
                 try
                 {
                     // Attempt to open the port for testing
-                    testPort = OpenComPort(port);
+                    testPort = openComPort(port);
 
                     // Temporarily use the test port for SendAndReceive
                     _serialPort = testPort;
@@ -132,7 +138,7 @@ namespace Digalox_Batch_Programmer
                 {
                     // NOTE: sendIDCounter is incremented by the caller so we do not increment here to avoid double-counting
                     _serialPort.Write(data);
-                    Log($"TX-> {_serialPort.PortName}: '{data.Replace("\r","\\r").Replace("\n", "\\n")}'", Color.Blue);
+                    Log($"TX-> {_serialPort.PortName}: '{data.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Blue);
                 }
                 catch (Exception ex)
                 {
@@ -191,7 +197,7 @@ namespace Digalox_Batch_Programmer
         /// <param name="dataBits">Data bits (default8).</param>
         /// <param name="stopBits">Stop bits (default One).</param>
         /// <returns>An opened SerialPort instance. Caller is responsible for disposing it.</returns>
-        public SerialPort OpenComPort(string portName, int baudRate = 19200, Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One)
+        public SerialPort openComPort(string portName, int baudRate = 19200, Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One)
         {
             if (string.IsNullOrWhiteSpace(portName))
                 throw new ArgumentException("portName must be a valid COM port name like 'COM3'.", nameof(portName));
@@ -306,15 +312,34 @@ namespace Digalox_Batch_Programmer
 
         private void buttonOpen_Click(object sender, EventArgs e)
         {
-            try
+            if (buttonOpen.Text == "Close")
             {
-                if (_serialPort == null || !_serialPort.IsOpen)
-                    _serialPort = OpenComPort(comboBoxComPorts.Text);
-                var response = SendAndReceive("identify?\r", 1000);
+                closeComPort();
+                buttonOpen.Text = "Open";
+                return;
             }
-            catch (Exception ex)
+            else
             {
-                Log($"Error sending to COM port: {ex.Message}", Color.Red);
+                if (_serialPort != null && _serialPort.IsOpen)
+                {
+                    Log($"Port {_serialPort.PortName} is already open.", Color.Orange);
+                    return;
+                }
+                var selectedPort = comboBoxComPorts?.SelectedItem?.ToString();
+                if (string.IsNullOrEmpty(selectedPort))
+                {
+                    Log("No COM port selected to open.", Color.Red);
+                    return;
+                }
+                try
+                {
+                    _serialPort = openComPort(selectedPort);
+                }
+                catch (Exception ex)
+                {
+                    Log($"Failed to open port {selectedPort}: {ex.Message}", Color.Red);
+                }
+                buttonOpen.Text = "Close";
             }
         }
 
@@ -339,8 +364,6 @@ namespace Digalox_Batch_Programmer
                     {
                         var bytes = System.IO.File.ReadAllBytes(path);
                         Log($"Loaded file '{System.IO.Path.GetFileName(path)}' ({bytes.Length} bytes)", Color.Green);
-
-                        // TODO: process the file contents as needed (e.g., parse firmware)
                     }
                     catch (Exception ex)
                     {
@@ -359,6 +382,11 @@ namespace Digalox_Batch_Programmer
         }
 
         private void buttonWriteFile_Click(object sender, EventArgs e)
+        {
+            writeFile();
+        }
+
+        private async void writeFile()
         {
             try
             {
@@ -382,7 +410,7 @@ namespace Digalox_Batch_Programmer
                     {
                         try
                         {
-                            _serialPort = OpenComPort(selectedPort);
+                            _serialPort = openComPort(selectedPort);
                         }
                         catch (Exception ex)
                         {
@@ -397,48 +425,151 @@ namespace Digalox_Batch_Programmer
                     }
                 }
 
-                int lineNumber = 0;
-                foreach (var rawLine in System.IO.File.ReadLines(path))
+                // Disable the write button while the transfer runs to avoid re-entrancy
+                writingInProgress = true;
+
+                // Prepare progress information
+                string[] lines = System.IO.File.ReadAllLines(path);
+                int totalLines = lines.Length;
+                if (totalLines == 0)
+                    totalLines = 1; // avoid zero maximum
+
+                // Initialize progress bar on UI thread
+                try
                 {
-                    lineNumber++;
-                    var trimmed = rawLine.TrimEnd('\r', '\n');
-
-                    // increment send ID for this outgoing line and insert it after the first ':' if present
-                    sendIDCounter++;
-
-                    var toSend = trimmed;
-                    int colonIndex = toSend.IndexOf(':');
-                    if (colonIndex >= 0)
+                    if (progressBarWrite != null)
                     {
-                        // insert a space, the counter and a semicolon right after the first ':'
-                        toSend = toSend.Insert(colonIndex + 1, " " + sendIDCounter + ";");
+                        this.Invoke((Action)(() =>
+                        {
+                            progressBarWrite.Minimum = 0;
+                            progressBarWrite.Maximum = totalLines;
+                            progressBarWrite.Value = 0;
+                        }));
                     }
-
-                    // ensure CR at end as requested
-                    toSend = toSend + "\r";
-
-
-                    string response;
-                    try
-                    {
-                        response = SendAndReceive(toSend, 2000);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log($"Error sending line {lineNumber}: {ex.Message}", Color.Red);
-                        // continue sending remaining lines (do not abort entire transfer)
-                        continue;
-                    }
-
-                    // small delay to avoid overrunning device
-                    Thread.Sleep(200);
                 }
+                catch { }
+
+                // Run the send loop on a background thread so the UI thread remains responsive
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        int lineNumber = i + 1;
+                        var rawLine = lines[i];
+                        var trimmed = rawLine.TrimEnd('\r', '\n');
+
+                        // increment send ID for this outgoing line and insert it after the first ':' if present
+                        sendIDCounter++;
+
+                        var toSend = trimmed;
+                        int colonIndex = toSend.IndexOf(':');
+                        if (colonIndex >= 0)
+                        {
+                            // insert a space, the counter and a semicolon right after the first ':'
+                            toSend = toSend.Insert(colonIndex + 1, " " + sendIDCounter + ";");
+                        }
+
+                        // ensure CR at end as requested
+                        toSend = toSend + "\r";
+
+
+                        try
+                        {
+                            var response = SendAndReceive(toSend, 2000);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Error sending line {lineNumber}: {ex.Message}", Color.Red);
+                            // continue sending remaining lines (do not abort entire transfer)
+                            // still update progress for the failed line
+                        }
+
+                        // Update progress bar on UI thread
+                        try
+                        {
+                            if (progressBarWrite != null)
+                            {
+                                this.Invoke((Action)(() =>
+                                {
+                                    // clamp value to maximum
+                                    int val = Math.Min(lineNumber, progressBarWrite.Maximum);
+                                    progressBarWrite.Value = val;
+                                }));
+                            }
+                        }
+                        catch { }
+
+                        // small delay to avoid overrunning device
+                        Thread.Sleep(200);
+                    }
+                });
+
+                // Ensure progress bar shows completion
+                try
+                {
+                    if (progressBarWrite != null)
+                    {
+                        this.Invoke((Action)(() => progressBarWrite.Value = progressBarWrite.Maximum));
+                    }
+                }
+                catch { }
 
                 Log($"Finished sending file '{System.IO.Path.GetFileName(path)}'", Color.Yellow);
             }
             catch (Exception ex)
             {
                 Log($"Error writing file to device: {ex.Message}", Color.Red);
+            }
+            finally
+            {
+                writingInProgress = false;
+            }
+        }
+
+        private void timerSetButtons_Tick(object sender, EventArgs e)
+        {
+            if (_serialPort != null && _serialPort.IsOpen && !string.IsNullOrEmpty(path) && !writingInProgress)
+            {
+                buttonWriteFile.Enabled = true;
+            }
+            else
+            {
+                buttonWriteFile.Enabled = false;
+            }
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                checkBoxAuto.Enabled = true;
+            }
+            else
+            {
+                checkBoxAuto.Enabled = false;
+            }
+
+            if (comboBoxComPorts.Items.Count > 0)
+            {
+                buttonOpen.Enabled = true;
+                comboBoxComPorts.Enabled = true;
+            }
+            else
+            {
+                buttonOpen.Enabled = false;
+                comboBoxComPorts.Enabled = false;
+            }
+
+            if (checkBoxAuto.Checked)
+            {
+                if (!writingInProgress && !string.IsNullOrEmpty(path))
+                {
+                    timerCheck.Enabled = false;
+                    scanComPorts();
+                    if (comboBoxComPorts.Items.Count > 0)
+                    {
+                        openComPort(comboBoxComPorts.SelectedItem?.ToString() ?? "");
+                        writeFile();
+                    }
+                    timerCheck.Enabled = true;
+                }
             }
         }
     }
