@@ -12,20 +12,55 @@ namespace Digalox_Batch_Programmer
         private SerialPort? _serialPort;
         private int sendIDCounter = 0;
         private bool writingInProgress = false;
+        private bool autoArmed = false; // when true and Auto is checked, a single write will start on next tick
 
         public Form1()
         {
             InitializeComponent();
+            // Configure the log appearance to use a high-contrast, easy-to-read background and font
+            ConfigureLogAppearance();
+        }
+
+        /// <summary>
+        /// Configure richTextBoxLog appearance for good readability (background, font, default colors).
+        /// Called from the constructor after InitializeComponent.
+        /// </summary>
+        private void ConfigureLogAppearance()
+        {
+            try
+            {
+                if (richTextBoxLog != null)
+                {
+                    // Dark background with light foreground gives good contrast for colored messages
+                    richTextBoxLog.BackColor = Color.FromArgb(18, 18, 18); // very dark gray
+                    richTextBoxLog.ForeColor = Color.FromArgb(230, 230, 230); // near-white for default text
+
+                    // Use a monospace font for better alignment and readability of log data
+                    try { richTextBoxLog.Font = new Font("Consolas", 10F, FontStyle.Regular); } catch { /* fallback ignored */ }
+
+                    // Ensure the control scrolls to caret and selection behavior remains predictable
+                    richTextBoxLog.HideSelection = false;
+                }
+            }
+            catch { }
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            scanComPorts();
+            
         }
 
         private void scanComPorts()
         {
             // Populate comboBoxComPorts with ports that respond with "TDE" to an identify? query
+            int previousCount = 0;
+            try
+            {
+                if (comboBoxComPorts != null)
+                    previousCount = comboBoxComPorts.Items.Count;
+            }
+            catch { }
+
             comboBoxComPorts.Items.Clear();
 
             var ports = SerialPort.GetPortNames();
@@ -85,11 +120,21 @@ namespace Digalox_Batch_Programmer
                 }
             }
 
+            // If Auto is enabled and we discovered more ports than before, arm a single automatic write
+            try
+            {
+                int newCount = comboBoxComPorts.Items.Count;
+                if (checkBoxAuto != null && checkBoxAuto.Checked && newCount > previousCount)
+                {
+                    autoArmed = true;
+                }
+            }
+            catch { }
+
             // Optionally select the first detected port
             if (comboBoxComPorts.Items.Count > 0)
             {
                 comboBoxComPorts.SelectedIndex = 0;
-                Log($"Selected port {comboBoxComPorts.SelectedItem}", Color.Yellow);
             }
             else
             {
@@ -143,7 +188,7 @@ namespace Digalox_Batch_Programmer
                 catch (Exception ex)
                 {
                     Log($"Error writing to {_serialPort.PortName}: {ex.Message}", Color.Red);
-                    throw;
+                    throw new Exception($"Error writing to {_serialPort.PortName}: {ex.Message}");
                 }
 
                 // poll for response until timeout
@@ -170,7 +215,7 @@ namespace Digalox_Batch_Programmer
                         break;
                     }
 
-                    Thread.Sleep(200);
+                    Thread.Sleep(20);
                 }
             }
 
@@ -284,62 +329,41 @@ namespace Digalox_Batch_Programmer
             int originalSelectionStart = richTextBoxLog.SelectionStart;
             int originalSelectionLength = richTextBoxLog.SelectionLength;
             Color originalColor = richTextBoxLog.SelectionColor;
+            bool controlHasFocus = richTextBoxLog.Focused;
 
             try
             {
+                // Move caret to end and append colored text
                 richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
                 richTextBoxLog.SelectionLength = 0;
                 richTextBoxLog.SelectionColor = color;
                 richTextBoxLog.AppendText(message + Environment.NewLine);
-                richTextBoxLog.SelectionColor = originalColor;
+
+                // Ensure caret is at end and scroll to caret so newest log is visible
                 richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
                 richTextBoxLog.SelectionLength = 0;
                 richTextBoxLog.ScrollToCaret();
             }
             finally
             {
-                // restore previous selection (keeps caret behavior predictable)
+                // restore previous selection (only if the user had focus), otherwise keep caret at end so the box stays autoscrolled
                 try
                 {
-                    richTextBoxLog.SelectionStart = originalSelectionStart;
-                    richTextBoxLog.SelectionLength = originalSelectionLength;
                     richTextBoxLog.SelectionColor = originalColor;
+                    if (controlHasFocus)
+                    {
+                        // clamp original selection start to current text length
+                        richTextBoxLog.SelectionStart = Math.Min(originalSelectionStart, richTextBoxLog.TextLength);
+                        richTextBoxLog.SelectionLength = Math.Min(originalSelectionLength, richTextBoxLog.TextLength - richTextBoxLog.SelectionStart);
+                    }
+                    else
+                    {
+                        // keep caret at end for autoscroll
+                        richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
+                        richTextBoxLog.SelectionLength = 0;
+                    }
                 }
                 catch { }
-            }
-        }
-
-
-        private void buttonOpen_Click(object sender, EventArgs e)
-        {
-            if (buttonOpen.Text == "Close")
-            {
-                closeComPort();
-                buttonOpen.Text = "Open";
-                return;
-            }
-            else
-            {
-                if (_serialPort != null && _serialPort.IsOpen)
-                {
-                    Log($"Port {_serialPort.PortName} is already open.", Color.Orange);
-                    return;
-                }
-                var selectedPort = comboBoxComPorts?.SelectedItem?.ToString();
-                if (string.IsNullOrEmpty(selectedPort))
-                {
-                    Log("No COM port selected to open.", Color.Red);
-                    return;
-                }
-                try
-                {
-                    _serialPort = openComPort(selectedPort);
-                }
-                catch (Exception ex)
-                {
-                    Log($"Failed to open port {selectedPort}: {ex.Message}", Color.Red);
-                }
-                buttonOpen.Text = "Close";
             }
         }
 
@@ -383,50 +407,59 @@ namespace Digalox_Batch_Programmer
 
         private void buttonWriteFile_Click(object sender, EventArgs e)
         {
-            writeFile();
+            if (!writingInProgress && !string.IsNullOrEmpty(path))
+            {
+                if (comboBoxComPorts.Items.Count > 0)
+                {
+                    writeFile();
+                }
+            }
         }
 
         private async void writeFile()
         {
+            writingInProgress = true;
             try
-            {
+            {                
                 if (string.IsNullOrEmpty(path))
                 {
                     Log("No file selected to write. Use Load File first.", Color.Orange);
-                    return;
+                    throw new InvalidOperationException("No file selected to write. Use Load File first.");
                 }
 
                 if (!System.IO.File.Exists(path))
                 {
                     Log($"File not found: {path}", Color.Red);
-                    return;
+                    throw new InvalidOperationException($"File not found: {path}");
                 }
 
-                // Ensure serial port is open; try to open the selected port if available
-                if (_serialPort == null || !_serialPort.IsOpen)
+                // Try to open the selected port if available
+                var selectedPort = comboBoxComPorts?.SelectedItem?.ToString();
+                if (!string.IsNullOrEmpty(selectedPort))
                 {
-                    var selectedPort = comboBoxComPorts?.SelectedItem?.ToString();
-                    if (!string.IsNullOrEmpty(selectedPort))
+                    try
                     {
-                        try
-                        {
-                            _serialPort = openComPort(selectedPort);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log($"Failed to open selected port {selectedPort}: {ex.Message}", Color.Red);
-                            return;
-                        }
+                        closeComPort();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Log("No serial port open and no port selected. Open or select a port first.", Color.Red);
-                        return;
+                    }
+
+                    try
+                    {
+                        _serialPort = openComPort(selectedPort);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Failed to open selected port {selectedPort}: {ex.Message}", Color.Red);
+                        throw new Exception($"Failed to open selected port {selectedPort}: {ex.Message}");
                     }
                 }
-
-                // Disable the write button while the transfer runs to avoid re-entrancy
-                writingInProgress = true;
+                else
+                {
+                    Log("No serial port open and no port selected. Open or select a port first.", Color.Red);
+                    throw new InvalidOperationException("No serial port open and no port selected. Open or select a port first.");
+                }
 
                 // Prepare progress information
                 string[] lines = System.IO.File.ReadAllLines(path);
@@ -500,7 +533,7 @@ namespace Digalox_Batch_Programmer
                         catch { }
 
                         // small delay to avoid overrunning device
-                        Thread.Sleep(200);
+                        Thread.Sleep(20);
                     }
                 });
 
@@ -523,12 +556,15 @@ namespace Digalox_Batch_Programmer
             finally
             {
                 writingInProgress = false;
+                // after finishing a write, do not immediately re-arm auto mode - wait for a new port connection
+                autoArmed = false;
+                closeComPort();
             }
         }
 
         private void timerSetButtons_Tick(object sender, EventArgs e)
         {
-            if (_serialPort != null && _serialPort.IsOpen && !string.IsNullOrEmpty(path) && !writingInProgress)
+            if (!string.IsNullOrEmpty(path) && !writingInProgress)
             {
                 buttonWriteFile.Enabled = true;
             }
@@ -548,27 +584,42 @@ namespace Digalox_Batch_Programmer
 
             if (comboBoxComPorts.Items.Count > 0)
             {
-                buttonOpen.Enabled = true;
                 comboBoxComPorts.Enabled = true;
             }
             else
             {
-                buttonOpen.Enabled = false;
                 comboBoxComPorts.Enabled = false;
             }
 
-            if (checkBoxAuto.Checked)
+
+            if (!writingInProgress)
             {
-                if (!writingInProgress && !string.IsNullOrEmpty(path))
+                var ports = SerialPort.GetPortNames();
+                if (checkBoxAuto != null && checkBoxAuto.Checked)
                 {
-                    timerCheck.Enabled = false;
-                    scanComPorts();
-                    if (comboBoxComPorts.Items.Count > 0)
+                    if (!string.IsNullOrEmpty(path))
                     {
-                        openComPort(comboBoxComPorts.SelectedItem?.ToString() ?? "");
-                        writeFile();
+                        // If system ports changed, update the detected devices list. This will arm auto if new ports are found.
+                        if (ports.Length != comboBoxComPorts.Items.Count)
+                        {
+                            scanComPorts();
+                        }
+
+                        // Start a single automatic write only if we've been armed by a port change
+                        if (autoArmed && comboBoxComPorts.Items.Count > 0)
+                        {
+                            // disarm before starting to prevent reentry
+                            autoArmed = false;
+                            writeFile();
+                        }
                     }
-                    timerCheck.Enabled = true;
+                }
+                else
+                {
+                    if (ports.Length != comboBoxComPorts.Items.Count)
+                    {
+                        scanComPorts();
+                    }
                 }
             }
         }

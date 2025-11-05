@@ -29,7 +29,6 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            buttonOpen = new Button();
             comboBoxComPorts = new ComboBox();
             richTextBoxLog = new RichTextBox();
             openFileDialog1 = new OpenFileDialog();
@@ -40,17 +39,6 @@
             progressBarWrite = new ProgressBar();
             SuspendLayout();
             // 
-            // buttonOpen
-            // 
-            buttonOpen.Enabled = false;
-            buttonOpen.Location = new Point(169, 12);
-            buttonOpen.Name = "buttonOpen";
-            buttonOpen.Size = new Size(94, 29);
-            buttonOpen.TabIndex = 0;
-            buttonOpen.Text = "Open";
-            buttonOpen.UseVisualStyleBackColor = true;
-            buttonOpen.Click += buttonOpen_Click;
-            // 
             // comboBoxComPorts
             // 
             comboBoxComPorts.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -58,7 +46,7 @@
             comboBoxComPorts.FormattingEnabled = true;
             comboBoxComPorts.Location = new Point(12, 12);
             comboBoxComPorts.Name = "comboBoxComPorts";
-            comboBoxComPorts.Size = new Size(151, 28);
+            comboBoxComPorts.Size = new Size(251, 28);
             comboBoxComPorts.TabIndex = 1;
             // 
             // richTextBoxLog
@@ -134,9 +122,8 @@
             Controls.Add(buttonLoadFile);
             Controls.Add(richTextBoxLog);
             Controls.Add(comboBoxComPorts);
-            Controls.Add(buttonOpen);
             Name = "Form1";
-            Text = "Form1";
+            Text = "Digalox Batch Programmer v1.0";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;
             ResumeLayout(false);
@@ -144,8 +131,6 @@
         }
 
         #endregion
-
-        private Button buttonOpen;
         private ComboBox comboBoxComPorts;
         private RichTextBox richTextBoxLog;
         private OpenFileDialog openFileDialog1;
