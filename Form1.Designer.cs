@@ -31,6 +31,9 @@
             buttonOpen = new Button();
             comboBoxComPorts = new ComboBox();
             richTextBoxLog = new RichTextBox();
+            openFileDialog1 = new OpenFileDialog();
+            buttonLoadFile = new Button();
+            buttonWriteFile = new Button();
             SuspendLayout();
             // 
             // buttonOpen
@@ -55,17 +58,46 @@
             // richTextBoxLog
             // 
             richTextBoxLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            richTextBoxLog.Location = new Point(12, 46);
+            richTextBoxLog.BackColor = SystemColors.ScrollBar;
+            richTextBoxLog.Location = new Point(12, 47);
             richTextBoxLog.Name = "richTextBoxLog";
-            richTextBoxLog.Size = new Size(776, 392);
+            richTextBoxLog.ReadOnly = true;
+            richTextBoxLog.Size = new Size(776, 391);
             richTextBoxLog.TabIndex = 2;
             richTextBoxLog.Text = "";
+            richTextBoxLog.WordWrap = false;
+            // 
+            // openFileDialog1
+            // 
+            openFileDialog1.FileName = "openFileDialog1";
+            // 
+            // buttonLoadFile
+            // 
+            buttonLoadFile.Location = new Point(269, 12);
+            buttonLoadFile.Name = "buttonLoadFile";
+            buttonLoadFile.Size = new Size(94, 29);
+            buttonLoadFile.TabIndex = 3;
+            buttonLoadFile.Text = "Load File";
+            buttonLoadFile.UseVisualStyleBackColor = true;
+            buttonLoadFile.Click += buttonLoadFile_Click;
+            // 
+            // buttonWriteFile
+            // 
+            buttonWriteFile.Location = new Point(369, 12);
+            buttonWriteFile.Name = "buttonWriteFile";
+            buttonWriteFile.Size = new Size(94, 29);
+            buttonWriteFile.TabIndex = 4;
+            buttonWriteFile.Text = "Write";
+            buttonWriteFile.UseVisualStyleBackColor = true;
+            buttonWriteFile.Click += buttonWriteFile_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(buttonWriteFile);
+            Controls.Add(buttonLoadFile);
             Controls.Add(richTextBoxLog);
             Controls.Add(comboBoxComPorts);
             Controls.Add(buttonOpen);
@@ -81,5 +113,8 @@
         private Button buttonOpen;
         private ComboBox comboBoxComPorts;
         private RichTextBox richTextBoxLog;
+        private OpenFileDialog openFileDialog1;
+        private Button buttonLoadFile;
+        private Button buttonWriteFile;
     }
 }

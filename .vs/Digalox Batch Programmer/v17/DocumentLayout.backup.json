@@ -7,16 +7,8 @@
       "RelativeMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|c:\\users\\ripper121\\documents\\github\\digalox-batch-programmer\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|c:\\users\\ripper121\\documents\\github\\digalox-batch-programmer\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|c:\\users\\ripper121\\documents\\github\\digalox-batch-programmer\\digalox batch programmer.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{81673AF2-0492-4C2B-9EBC-64F6FA300F10}|Digalox Batch Programmer.csproj|solutionrelative:digalox batch programmer.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,21 +18,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Digalox Batch Programmer",
-              "DocumentMoniker": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
-              "RelativeDocumentMoniker": "Digalox Batch Programmer.csproj",
-              "ToolTip": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
-              "RelativeToolTip": "Digalox Batch Programmer.csproj",
-              "ViewState": "AgIAAA4AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-11-04T10:41:04.353Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -49,22 +28,10 @@
               "RelativeDocumentMoniker": "Form1.cs",
               "ToolTip": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Form1.cs",
               "RelativeToolTip": "Form1.cs",
-              "ViewState": "AgIAABEAAAAAAAAAAAAuwH8AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAJcBAAAAAAAAAAD4v4UAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-04T10:38:47.513Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-04T10:37:29.504Z",
+              "IsPinned": true,
               "EditorCaption": ""
             },
             {
@@ -77,6 +44,7 @@
               "RelativeToolTip": "Form1.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-04T10:35:28.663Z",
+              "IsPinned": true,
               "EditorCaption": " [Design]"
             }
           ]
