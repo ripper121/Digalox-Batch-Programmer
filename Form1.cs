@@ -4,15 +4,20 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace Digalox_Batch_Programmer
 {
     public partial class Form1 : Form
     {
         private SerialPort? _serialPort;
+        private readonly object _serialLock = new();
         private int sendIDCounter = 0;
         private bool writingInProgress = false;
         private bool autoArmed = false; // when true and Auto is checked, a single write will start on next tick
+
+        // cancellation for in-progress write operations
+        private CancellationTokenSource? _writeCancellationSource;
 
         public Form1()
         {
@@ -42,24 +47,22 @@ namespace Digalox_Batch_Programmer
                     richTextBoxLog.HideSelection = false;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // log configuration errors
+                try { Log($"ConfigureLogAppearance error: {ex.Message}", Color.Orange); } catch { }
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+
         }
 
-        private void scanComPorts()
+        private void ScanComPorts()
         {
             // Populate comboBoxComPorts with ports that respond with "TDE" to an identify? query
-            int previousCount = 0;
-            try
-            {
-                if (comboBoxComPorts != null)
-                    previousCount = comboBoxComPorts.Items.Count;
-            }
-            catch { }
+            int previousCount = comboBoxComPorts.Items.Count;
 
             comboBoxComPorts.Items.Clear();
 
@@ -67,16 +70,12 @@ namespace Digalox_Batch_Programmer
             foreach (var port in ports)
             {
                 SerialPort? testPort = null;
-                var previous = _serialPort;
                 try
                 {
                     // Attempt to open the port for testing
-                    testPort = openComPort(port);
+                    testPort = OpenComPort(port);
 
-                    // Temporarily use the test port for SendAndReceive
-                    _serialPort = testPort;
-
-                    var response = SendAndReceive("identify?\r", 1000);
+                    var response = SendAndReceive(testPort, "identify?\r", 1000);
                     if (!string.IsNullOrEmpty(response) && response.IndexOf("TDE", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         comboBoxComPorts.Items.Add(port);
@@ -94,9 +93,6 @@ namespace Digalox_Batch_Programmer
                 }
                 finally
                 {
-                    // restore previous port (do not close it here)
-                    _serialPort = previous;
-
                     // close and dispose the test port if we created it
                     if (testPort != null)
                     {
@@ -114,7 +110,7 @@ namespace Digalox_Batch_Programmer
                         }
                         finally
                         {
-                            testPort.Dispose();
+                            try { testPort.Dispose(); } catch { }
                         }
                     }
                 }
@@ -152,18 +148,35 @@ namespace Digalox_Batch_Programmer
         /// <returns>Response string received from the port (may be empty if nothing received).</returns>
         public string SendAndReceive(string data, int readTimeoutMs = 1000)
         {
-            if (_serialPort == null || !_serialPort.IsOpen)
+            SerialPort portCopy;
+            lock (_serialLock)
+            {
+                if (_serialPort == null || !_serialPort.IsOpen)
+                    throw new InvalidOperationException("Serial port is not open.");
+
+                portCopy = _serialPort;
+            }
+
+            return SendAndReceive(portCopy, data, readTimeoutMs);
+        }
+
+        /// <summary>
+        /// Sends data using the provided SerialPort instance. Does not modify _serialPort.
+        /// </summary>
+        public string SendAndReceive(SerialPort port, string data, int readTimeoutMs = 1000)
+        {
+            if (port == null || !port.IsOpen)
                 throw new InvalidOperationException("Serial port is not open.");
 
             var sb = new StringBuilder();
             var end = DateTime.UtcNow + TimeSpan.FromMilliseconds(readTimeoutMs);
 
-            lock (_serialPort)
+            lock (_serialLock)
             {
                 // clear buffers to avoid reading stale data
                 try
                 {
-                    _serialPort.DiscardInBuffer();
+                    port.DiscardInBuffer();
                 }
                 catch (Exception ex)
                 {
@@ -171,7 +184,7 @@ namespace Digalox_Batch_Programmer
                 }
                 try
                 {
-                    _serialPort.DiscardOutBuffer();
+                    port.DiscardOutBuffer();
                 }
                 catch (Exception ex)
                 {
@@ -182,13 +195,13 @@ namespace Digalox_Batch_Programmer
                 try
                 {
                     // NOTE: sendIDCounter is incremented by the caller so we do not increment here to avoid double-counting
-                    _serialPort.Write(data);
-                    Log($"TX-> {_serialPort.PortName}: '{data.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Blue);
+                    port.Write(data);
+                    Log($"TX-> {port.PortName}: '{data.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Blue);
                 }
                 catch (Exception ex)
                 {
-                    Log($"Error writing to {_serialPort.PortName}: {ex.Message}", Color.Red);
-                    throw new Exception($"Error writing to {_serialPort.PortName}: {ex.Message}");
+                    Log($"Error writing to {port.PortName}: {ex.Message}", Color.Red);
+                    throw new IOException($"Error writing to {port.PortName}", ex);
                 }
 
                 // poll for response until timeout
@@ -196,9 +209,9 @@ namespace Digalox_Batch_Programmer
                 {
                     try
                     {
-                        if (_serialPort.BytesToRead > 0)
+                        if (port.BytesToRead > 0)
                         {
-                            sb.Append(_serialPort.ReadExisting());
+                            sb.Append(port.ReadExisting());
                             // if the device uses newline-terminated responses, return early when newline seen
                             if (sb.ToString().IndexOfAny(new[] { '\r', '\n' }) >= 0)
                                 break;
@@ -207,11 +220,10 @@ namespace Digalox_Batch_Programmer
                     catch (TimeoutException)
                     {
                         // ignore and continue until overall timeout
-                        // do not spam the log for each small timeout; we'll log if no response after overall timeout
                     }
                     catch (Exception ex)
                     {
-                        Log($"Error reading from {_serialPort.PortName}: {ex.Message}", Color.Red);
+                        Log($"Error reading from {port.PortName}: {ex.Message}", Color.Red);
                         break;
                     }
 
@@ -226,7 +238,7 @@ namespace Digalox_Batch_Programmer
             }
             else
             {
-                Log($"RX<- {_serialPort?.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Green);
+                Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Green);
             }
 
             return result;
@@ -237,12 +249,12 @@ namespace Digalox_Batch_Programmer
         /// Throws an exception if the port is not available or cannot be opened.
         /// </summary>
         /// <param name="portName">The COM port name (e.g. "COM3").</param>
-        /// <param name="baudRate">Baud rate (default9600).</param>
+        /// <param name="baudRate">Baud rate (default19200).</param>
         /// <param name="parity">Parity (default None).</param>
         /// <param name="dataBits">Data bits (default8).</param>
         /// <param name="stopBits">Stop bits (default One).</param>
         /// <returns>An opened SerialPort instance. Caller is responsible for disposing it.</returns>
-        public SerialPort openComPort(string portName, int baudRate = 19200, Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One)
+        public SerialPort OpenComPort(string portName, int baudRate = 19200, Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One)
         {
             if (string.IsNullOrWhiteSpace(portName))
                 throw new ArgumentException("portName must be a valid COM port name like 'COM3'.", nameof(portName));
@@ -258,7 +270,8 @@ namespace Digalox_Batch_Programmer
             var sp = new SerialPort(portName, baudRate, parity, dataBits, stopBits)
             {
                 ReadTimeout = 500,
-                WriteTimeout = 500
+                WriteTimeout = 500,
+                Encoding = Encoding.ASCII
             };
 
             try
@@ -284,29 +297,32 @@ namespace Digalox_Batch_Programmer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            closeComPort();
+            CloseComPort();
         }
 
-        void closeComPort()
+        void CloseComPort()
         {
-            if (_serialPort != null)
+            lock (_serialLock)
             {
-                try
+                if (_serialPort != null)
                 {
-                    if (_serialPort.IsOpen)
+                    try
                     {
-                        _serialPort.Close();
-                        Log($"Closed port {_serialPort.PortName}", Color.Yellow);
+                        if (_serialPort.IsOpen)
+                        {
+                            _serialPort.Close();
+                            Log($"Closed port {_serialPort.PortName}", Color.Yellow);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Log($"Error closing port: {ex.Message}", Color.Orange);
-                }
-                finally
-                {
-                    try { _serialPort.Dispose(); } catch { }
-                    _serialPort = null;
+                    catch (Exception ex)
+                    {
+                        Log($"Error closing port: {ex.Message}", Color.Orange);
+                    }
+                    finally
+                    {
+                        try { _serialPort.Dispose(); } catch { }
+                        _serialPort = null;
+                    }
                 }
             }
         }
@@ -319,6 +335,9 @@ namespace Digalox_Batch_Programmer
         /// <param name="color">Text color to use for this message.</param>
         public void Log(string message, Color color)
         {
+            if (richTextBoxLog == null)
+                return;
+
             if (richTextBoxLog.InvokeRequired)
             {
                 richTextBoxLog.Invoke(new Action(() => Log(message, color)));
@@ -405,22 +424,52 @@ namespace Digalox_Batch_Programmer
             }
         }
 
-        private void buttonWriteFile_Click(object sender, EventArgs e)
+        private async void buttonWriteFile_Click(object sender, EventArgs e)
         {
             if (!writingInProgress && !string.IsNullOrEmpty(path))
             {
                 if (comboBoxComPorts.Items.Count > 0)
                 {
-                    writeFile();
+                    await WriteFileAsync();
                 }
+                else
+                {
+                    Log("Nothing Connected!", Color.Orange);
+                }
+            }
+            else
+            {
+                Log("No File selected!", Color.Orange);
             }
         }
 
-        private async void writeFile()
+        /// <summary>
+        /// Request cancellation of the currently running write operation (if any).
+        /// Can be wired to a Cancel button by the UI.
+        /// </summary>
+        public void CancelWrite()
+        {
+            try
+            {
+                _writeCancellationSource?.Cancel();
+                Log("Write operation cancelled by user.", Color.Orange);
+            }
+            catch (Exception ex)
+            {
+                Log($"Error cancelling write: {ex.Message}", Color.Orange);
+            }
+        }
+
+        private async Task WriteFileAsync()
         {
             writingInProgress = true;
+            _writeCancellationSource?.Cancel();
+            _writeCancellationSource?.Dispose();
+            _writeCancellationSource = new CancellationTokenSource();
+            var token = _writeCancellationSource.Token;
+
             try
-            {                
+            {
                 if (string.IsNullOrEmpty(path))
                 {
                     Log("No file selected to write. Use Load File first.", Color.Orange);
@@ -439,20 +488,24 @@ namespace Digalox_Batch_Programmer
                 {
                     try
                     {
-                        closeComPort();
+                        CloseComPort();
                     }
                     catch (Exception ex)
                     {
+                        Log($"Error closing previous port: {ex.Message}", Color.Orange);
                     }
 
                     try
                     {
-                        _serialPort = openComPort(selectedPort);
+                        lock (_serialLock)
+                        {
+                            _serialPort = OpenComPort(selectedPort);
+                        }
                     }
                     catch (Exception ex)
                     {
                         Log($"Failed to open selected port {selectedPort}: {ex.Message}", Color.Red);
-                        throw new Exception($"Failed to open selected port {selectedPort}: {ex.Message}");
+                        throw new InvalidOperationException($"Failed to open selected port {selectedPort}", ex);
                     }
                 }
                 else
@@ -483,10 +536,12 @@ namespace Digalox_Batch_Programmer
                 catch { }
 
                 // Run the send loop on a background thread so the UI thread remains responsive
-                await System.Threading.Tasks.Task.Run(() =>
+                await Task.Run(async () =>
                 {
                     for (int i = 0; i < lines.Length; i++)
                     {
+                        token.ThrowIfCancellationRequested();
+
                         int lineNumber = i + 1;
                         var rawLine = lines[i];
                         var trimmed = rawLine.TrimEnd('\r', '\n');
@@ -508,7 +563,23 @@ namespace Digalox_Batch_Programmer
 
                         try
                         {
-                            var response = SendAndReceive(toSend, 2000);
+                            token.ThrowIfCancellationRequested();
+
+                            SerialPort? portCopy;
+                            lock (_serialLock)
+                            {
+                                portCopy = _serialPort;
+                            }
+
+                            if (portCopy == null)
+                                throw new InvalidOperationException("Serial port was closed during write operation.");
+
+                            var response = SendAndReceive(portCopy, toSend, 2000);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Log($"Write cancelled before sending line {lineNumber}.", Color.Orange);
+                            break;
                         }
                         catch (Exception ex)
                         {
@@ -533,9 +604,9 @@ namespace Digalox_Batch_Programmer
                         catch { }
 
                         // small delay to avoid overrunning device
-                        Thread.Sleep(20);
+                        await Task.Delay(20, token).ContinueWith(_ => { });
                     }
-                });
+                }, token);
 
                 // Ensure progress bar shows completion
                 try
@@ -549,6 +620,10 @@ namespace Digalox_Batch_Programmer
 
                 Log($"Finished sending file '{System.IO.Path.GetFileName(path)}'", Color.Yellow);
             }
+            catch (OperationCanceledException)
+            {
+                Log("Write operation cancelled.", Color.Orange);
+            }
             catch (Exception ex)
             {
                 Log($"Error writing file to device: {ex.Message}", Color.Red);
@@ -558,11 +633,13 @@ namespace Digalox_Batch_Programmer
                 writingInProgress = false;
                 // after finishing a write, do not immediately re-arm auto mode - wait for a new port connection
                 autoArmed = false;
-                closeComPort();
+                try { _writeCancellationSource?.Dispose(); } catch { }
+                _writeCancellationSource = null;
+                CloseComPort();
             }
         }
 
-        private void timerSetButtons_Tick(object sender, EventArgs e)
+        private async void timerSetButtons_Tick(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(path) && !writingInProgress)
             {
@@ -585,6 +662,7 @@ namespace Digalox_Batch_Programmer
             if (comboBoxComPorts.Items.Count > 0)
             {
                 comboBoxComPorts.Enabled = true;
+                comboBoxComPorts.Enabled = !checkBoxAuto.Checked;
             }
             else
             {
@@ -602,7 +680,7 @@ namespace Digalox_Batch_Programmer
                         // If system ports changed, update the detected devices list. This will arm auto if new ports are found.
                         if (ports.Length != comboBoxComPorts.Items.Count)
                         {
-                            scanComPorts();
+                            ScanComPorts();
                         }
 
                         // Start a single automatic write only if we've been armed by a port change
@@ -610,7 +688,7 @@ namespace Digalox_Batch_Programmer
                         {
                             // disarm before starting to prevent reentry
                             autoArmed = false;
-                            writeFile();
+                            await WriteFileAsync();
                         }
                     }
                 }
@@ -618,7 +696,7 @@ namespace Digalox_Batch_Programmer
                 {
                     if (ports.Length != comboBoxComPorts.Items.Count)
                     {
-                        scanComPorts();
+                        ScanComPorts();
                     }
                 }
             }
