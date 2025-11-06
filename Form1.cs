@@ -639,6 +639,7 @@ namespace Digalox_Batch_Programmer
             }
         }
 
+        private int lastPortCount = 0;
         private async void timerSetButtons_Tick(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(path) && !writingInProgress)
@@ -678,7 +679,7 @@ namespace Digalox_Batch_Programmer
                     if (!string.IsNullOrEmpty(path))
                     {
                         // If system ports changed, update the detected devices list. This will arm auto if new ports are found.
-                        if (ports.Length != comboBoxComPorts.Items.Count)
+                        if (ports.Length != lastPortCount)
                         {
                             ScanComPorts();
                         }
@@ -694,11 +695,12 @@ namespace Digalox_Batch_Programmer
                 }
                 else
                 {
-                    if (ports.Length != comboBoxComPorts.Items.Count)
+                    if (ports.Length != lastPortCount)
                     {
                         ScanComPorts();
                     }
                 }
+                lastPortCount = ports.Length;
             }
         }
     }

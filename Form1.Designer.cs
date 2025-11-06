@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             comboBoxComPorts = new ComboBox();
             richTextBoxLog = new RichTextBox();
             openFileDialog1 = new OpenFileDialog();
@@ -122,6 +123,7 @@
             Controls.Add(buttonLoadFile);
             Controls.Add(richTextBoxLog);
             Controls.Add(comboBoxComPorts);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
             Text = "Digalox Batch Programmer v1.0";
             FormClosing += Form1_FormClosing;
