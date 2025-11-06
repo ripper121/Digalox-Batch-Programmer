@@ -48,8 +48,7 @@
               "RelativeToolTip": "Form1.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-04T10:35:28.663Z",
-              "IsPinned": true,
-              "EditorCaption": " [Design]"
+              "IsPinned": true
             },
             {
               "$type": "Document",
@@ -61,8 +60,7 @@
               "RelativeToolTip": "Form1.Designer.cs",
               "ViewState": "AgIAAEoAAAAAAAAAAAAowGEAAAA4AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T14:49:24.008Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-05T14:49:24.008Z"
             }
           ]
         }
