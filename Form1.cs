@@ -194,6 +194,7 @@ namespace Digalox_Batch_Programmer
                 // write
                 try
                 {
+                    sendIDCounter++;
                     // NOTE: sendIDCounter is incremented by the caller so we do not increment here to avoid double-counting
                     port.Write(data);
                     Log($"TX-> {port.PortName}: '{data.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Blue);
@@ -428,6 +429,7 @@ namespace Digalox_Batch_Programmer
         {
             if (!writingInProgress && !string.IsNullOrEmpty(path))
             {
+                sendIDCounter = 0;
                 if (comboBoxComPorts.Items.Count > 0)
                 {
                     await WriteFileAsync();
@@ -546,15 +548,12 @@ namespace Digalox_Batch_Programmer
                         var rawLine = lines[i];
                         var trimmed = rawLine.TrimEnd('\r', '\n');
 
-                        // increment send ID for this outgoing line and insert it after the first ':' if present
-                        sendIDCounter++;
-
                         var toSend = trimmed;
                         int colonIndex = toSend.IndexOf(':');
                         if (colonIndex >= 0)
                         {
                             // insert a space, the counter and a semicolon right after the first ':'
-                            toSend = toSend.Insert(colonIndex + 1, " " + sendIDCounter + ";");
+                            toSend = toSend.Insert(colonIndex + 1, sendIDCounter + ";");
                         }
 
                         // ensure CR at end as requested
@@ -575,6 +574,53 @@ namespace Digalox_Batch_Programmer
                                 throw new InvalidOperationException("Serial port was closed during write operation.");
 
                             var response = SendAndReceive(portCopy, toSend, 2000);
+                            if(response.Contains("pin_required:") && response.Contains(";100;1"))
+                            {
+                                // Ask the user for PIN on the UI thread using the PromptDialog helper
+                                string? pin = null;
+                                try
+                                {
+                                    this.Invoke((Action)(() =>
+                                    {
+                                        pin = PromptDialog.Show(this, "PIN Required", "Device requested a PIN:", "");
+                                    }));
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log($"Failed to show PIN dialog: {ex.Message}", Color.Orange);
+                                }
+
+                                if (string.IsNullOrEmpty(pin))
+                                {
+                                    // User cancelled or entered empty PIN -> abort write
+                                    Log("PIN entry cancelled or empty - aborting write.", Color.Orange);
+                                    throw new OperationCanceledException("PIN entry cancelled by user");
+                                }
+
+                                // Follow same send ID insertion pattern as other lines
+                                //pin_required: 65; 109; 2407
+                                //pin_required: 65; 101; 0
+
+                                var pinCmd = $"pin_required:{sendIDCounter};109;{pin}\r";
+
+                                try
+                                {
+                                    var pinResponse = SendAndReceive(portCopy, pinCmd,2000);
+                                    // Optionally inspect pinResponse for success/failure pin_required:1;101;0\r
+                                    if (pinResponse.Contains("pin_required:") && pinResponse.Contains(";101;"))
+                                    {
+                                        Log("Pin Accepted.", Color.Orange);
+                                    }
+                                    else
+                                    {
+                                        Log("Pin Error.", Color.Orange);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log($"Error sending PIN: {ex.Message}", Color.Red);
+                                }
+                            }
                         }
                         catch (OperationCanceledException)
                         {
