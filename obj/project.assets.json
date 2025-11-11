@@ -224,19 +224,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ripper121\\.nuget\\packages\\": {}
+    "C:\\Users\\Stefan.Kuechler\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
+      "projectUniqueName": "C:\\Users\\Stefan.Kuechler\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
       "projectName": "Digalox Batch Programmer",
-      "projectPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
-      "packagesPath": "C:\\Users\\ripper121\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ripper121\\Documents\\GitHub\\Digalox-Batch-Programmer\\obj\\",
+      "projectPath": "C:\\Users\\Stefan.Kuechler\\Documents\\GitHub\\Digalox-Batch-Programmer\\Digalox Batch Programmer.csproj",
+      "packagesPath": "C:\\Users\\Stefan.Kuechler\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Stefan.Kuechler\\Documents\\GitHub\\Digalox-Batch-Programmer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\ripper121\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Stefan.Kuechler\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [

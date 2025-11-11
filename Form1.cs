@@ -239,7 +239,14 @@ namespace Digalox_Batch_Programmer
             }
             else
             {
-                Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Green);
+                if(result.Contains("command_error"))
+                {
+                    Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Red);
+                }
+                else
+                {
+                    Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Green);
+                }                
             }
 
             return result;

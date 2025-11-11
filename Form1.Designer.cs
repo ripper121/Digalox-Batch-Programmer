@@ -125,7 +125,7 @@
             Controls.Add(comboBoxComPorts);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "Digalox Batch Programmer v1.0";
+            Text = "Digalox Batch Programmer v1.1";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;
             ResumeLayout(false);
