@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Digalox_Batch_Programmer
 {
@@ -15,6 +16,9 @@ namespace Digalox_Batch_Programmer
         private int sendIDCounter = 0;
         private bool writingInProgress = false;
         private bool autoArmed = false; // when true and Auto is checked, a single write will start on next tick
+
+        // prevent overlapping scans
+        private int _scanInProgress = 0;
 
         // cancellation for in-progress write operations
         private CancellationTokenSource? _writeCancellationSource;
@@ -59,82 +63,133 @@ namespace Digalox_Batch_Programmer
 
         }
 
-        private void ScanComPorts()
+        private async Task ScanComPorts()
         {
-            // Populate comboBoxComPorts with ports that respond with "TDE" to an identify? query
-            int previousCount = comboBoxComPorts.Items.Count;
-
-            comboBoxComPorts.Items.Clear();
-
-            var ports = SerialPort.GetPortNames();
-            foreach (var port in ports)
-            {
-                SerialPort? testPort = null;
-                try
-                {
-                    // Attempt to open the port for testing
-                    testPort = OpenComPort(port);
-
-                    var response = SendAndReceive(testPort, "identify?\r", 1000);
-                    if (!string.IsNullOrEmpty(response) && response.IndexOf("TDE", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        comboBoxComPorts.Items.Add(port);
-                        Log($"Detected TDE device on {port}", Color.Yellow);
-                    }
-                    else
-                    {
-                        Log($"No TDE response from {port} (response: '{response}')", Color.Orange);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // log ports that can't be opened or don't respond
-                    Log($"Failed to test port {port}: {ex.Message}", Color.Red);
-                }
-                finally
-                {
-                    // close and dispose the test port if we created it
-                    if (testPort != null)
-                    {
-                        try
-                        {
-                            if (testPort.IsOpen)
-                            {
-                                testPort.Close();
-                                Log($"Closed test port {port}", Color.Yellow);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log($"Error closing test port {port}: {ex.Message}", Color.Orange);
-                        }
-                        finally
-                        {
-                            try { testPort.Dispose(); } catch { }
-                        }
-                    }
-                }
-            }
-
-            // If Auto is enabled and we discovered more ports than before, arm a single automatic write
+            // Run the potentially slow port probing off the UI thread to avoid freezing the UI.
+            int previousCount = 0;
             try
             {
-                int newCount = comboBoxComPorts.Items.Count;
-                if (checkBoxAuto != null && checkBoxAuto.Checked && newCount > previousCount)
-                {
-                    autoArmed = true;
-                }
+                if (comboBoxComPorts != null)
+                    previousCount = comboBoxComPorts.Items.Count;
             }
             catch { }
 
-            // Optionally select the first detected port
-            if (comboBoxComPorts.Items.Count > 0)
+            var detected = new List<string>();
+
+            var ports = SerialPort.GetPortNames();
+
+            // Use Interlocked to set/clear the scan flag to prevent overlapping scans
+            if (Interlocked.CompareExchange(ref _scanInProgress, 1, 0) == 0)
             {
-                comboBoxComPorts.SelectedIndex = 0;
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        foreach (var port in ports)
+                        {
+                            SerialPort? testPort = null;
+                            try
+                            {
+                                // Attempt to open the port for testing
+                                testPort = OpenComPort(port);
+
+                                var response = SendAndReceive(testPort, "identify?\r", 1000);
+                                if (!string.IsNullOrEmpty(response) && response.IndexOf("TDE", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    detected.Add(port);
+                                    Log($"Detected TDE device on {port}", Color.Yellow);
+                                }
+                                else
+                                {
+                                    Log($"No TDE response from {port} (response: '{response}')", Color.Orange);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // log ports that can't be opened or don't respond
+                                Log($"Failed to test port {port}: {ex.Message}", Color.Red);
+                            }
+                            finally
+                            {
+                                // close and dispose the test port if we created it
+                                if (testPort != null)
+                                {
+                                    try
+                                    {
+                                        if (testPort.IsOpen)
+                                        {
+                                            try { testPort.Close(); } catch (Exception ex) { Log($"Error closing test port {port}: {ex.Message}", Color.Orange); }
+                                            Log($"Closed test port {port}", Color.Yellow);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log($"Error closing test port {port}: {ex.Message}", Color.Orange);
+                                    }
+                                    finally
+                                    {
+                                        try { testPort.Dispose(); } catch { }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                finally
+                {
+                    // Ensure the scan flag is cleared after the scan completes
+                    Interlocked.Exchange(ref _scanInProgress, 0);
+                }
             }
-            else
+
+            // Update UI controls on the UI thread
+            try
             {
-                Log("No compatible COM ports detected.", Color.Orange);
+                if (comboBoxComPorts != null)
+                {
+                    this.Invoke((Action)(() =>
+                    {
+                        comboBoxComPorts.Items.Clear();
+                        foreach (var p in detected)
+                            comboBoxComPorts.Items.Add(p);
+
+                        if (comboBoxComPorts.Items.Count > 0)
+                        {
+                            comboBoxComPorts.SelectedIndex = 0;
+                        }
+                        else
+                        {
+                            Log("No compatible COM ports detected.", Color.Orange);
+                        }
+
+                        // If Auto is enabled and we discovered more ports than before, arm a single automatic write
+                        try
+                        {
+                            int newCount = comboBoxComPorts.Items.Count;
+                            if (checkBoxAuto != null && checkBoxAuto.Checked && newCount > previousCount)
+                            {
+                                autoArmed = true;
+                            }
+                        }
+                        catch { }
+                    }));
+                }
+                else
+                {
+                    // If combo box not present, still check for auto arming based on detected count
+                    try
+                    {
+                        if (checkBoxAuto != null && checkBoxAuto.Checked && detected.Count > previousCount)
+                        {
+                            autoArmed = true;
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"ScanComPorts UI update error: {ex.Message}", Color.Orange);
             }
         }
 
@@ -290,6 +345,7 @@ namespace Digalox_Batch_Programmer
                     sp.Dispose();
                     Log($"Failed to open port '{portName}'.", Color.Red);
                     throw new InvalidOperationException($"Failed to open port '{portName}'.");
+
                 }
 
                 Log($"Opened port {portName} at {baudRate}bps", Color.Yellow);
@@ -807,7 +863,7 @@ namespace Digalox_Batch_Programmer
                         // If system ports changed, update the detected devices list. This will arm auto if new ports are found.
                         if (ports.Length != lastPortCount)
                         {
-                            ScanComPorts();
+                            await ScanComPorts();
                         }
 
                         // Start a single automatic write only if we've been armed by a port change
@@ -823,7 +879,7 @@ namespace Digalox_Batch_Programmer
                 {
                     if (ports.Length != lastPortCount)
                     {
-                        ScanComPorts();
+                        await ScanComPorts();
                     }
                 }
                 lastPortCount = ports.Length;

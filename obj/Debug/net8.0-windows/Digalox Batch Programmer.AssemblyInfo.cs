@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Digalox Batch Programmer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9bae59d17df5be57e55910d5266017c556ae10a1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e313d2f868c67cdac37fcf67bef93b972baa86c7")]
 [assembly: System.Reflection.AssemblyProductAttribute("Digalox Batch Programmer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Digalox Batch Programmer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
