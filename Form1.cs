@@ -239,14 +239,14 @@ namespace Digalox_Batch_Programmer
             }
             else
             {
-                if(result.Contains("command_error"))
+                if (result.Contains("command_error"))
                 {
                     Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Red);
                 }
                 else
                 {
                     Log($"RX<- {port.PortName}: '{result.Replace("\r", "\\r").Replace("\n", "\\n")}'", Color.Green);
-                }                
+                }
             }
 
             return result;
@@ -279,7 +279,7 @@ namespace Digalox_Batch_Programmer
             {
                 ReadTimeout = 500,
                 WriteTimeout = 500,
-                Encoding = Encoding.ASCII
+                Encoding = Encoding.Latin1
             };
 
             try
@@ -469,6 +469,72 @@ namespace Digalox_Batch_Programmer
             }
         }
 
+        private static byte calculateDpm72Checksum(string inputString, int startPos, bool output)
+        {
+            byte calculatedChecksum = 0;
+
+            if (startPos >= 0)
+            {
+                // Versuche Windows-1252; falls nicht verfügbar, registriere Provider oder falle auf Latin1 zurück.
+                Encoding encoding;
+                try
+                {
+                    // Registrierung ist idempotent und sicher mehrfach aufzurufen.
+                    Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                    encoding = Encoding.GetEncoding(1252);
+                }
+                catch
+                {
+                    // Wenn Codepages nicht verfügbar sind, verwende Latin1 als robusten Fallback.
+                    encoding = Encoding.Latin1;
+                }
+
+                byte[] bytes = encoding.GetBytes(inputString);
+
+                for (int i = startPos; i < bytes.Length; i++)
+                {
+                    byte value = bytes[i];
+
+                    // Apply XOR based on 'output' flag
+                    value ^= (byte)(output ? 0x55 : 0xAA);
+
+                    // Add to checksum (compound assignment wraps automatically)
+                    calculatedChecksum += value;
+                }
+            }
+
+            return calculatedChecksum;
+        }
+
+        private static string insertCrc(string line, bool output)
+        {
+            // Find colon (start of CRC field)
+            int colonIndex = line.IndexOf(':');
+            if (colonIndex < 0)
+                throw new ArgumentException("Line must contain a ':' character");
+
+            // Find first semicolon (end of CRC field)
+            int semicolonIndex = line.IndexOf(';', colonIndex + 1);
+            if (semicolonIndex < 0)
+                throw new ArgumentException("Line must contain a ';' after CRC field");
+
+            // Extract the substring after the colon (includes current CRC + rest of data)
+            string crcPart = line.Substring(colonIndex + 1);
+
+            // Calculate start position for checksum (after the first semicolon in crcPart)
+            int startPos = crcPart.IndexOf(';') + 1;
+
+            // Calculate correct CRC using validated algorithm
+            byte crc = calculateDpm72Checksum(crcPart, startPos, output);
+
+            // Rebuild the line:
+            // Everything up to colon + new CRC + everything after semicolon
+            string updatedLine = line.Substring(0, colonIndex + 1) + crc + line.Substring(semicolonIndex);
+
+            return updatedLine;
+        }
+
+
         private async Task WriteFileAsync()
         {
             writingInProgress = true;
@@ -553,18 +619,25 @@ namespace Digalox_Batch_Programmer
 
                         int lineNumber = i + 1;
                         var rawLine = lines[i];
+
+                        if (checkBoxCRC.Checked)
+                        {
+                            rawLine = insertCrc(rawLine, false);
+                        }
+
                         var trimmed = rawLine.TrimEnd('\r', '\n');
 
                         var toSend = trimmed;
                         int colonIndex = toSend.IndexOf(':');
                         if (colonIndex >= 0)
                         {
-                            // insert a space, the counter and a semicolon right after the first ':'
+                            // insert the counter and a semicolon right after the first ':'
                             toSend = toSend.Insert(colonIndex + 1, sendIDCounter + ";");
                         }
 
                         // ensure CR at end as requested
                         toSend = toSend + "\r";
+
 
 
                         try
@@ -581,7 +654,7 @@ namespace Digalox_Batch_Programmer
                                 throw new InvalidOperationException("Serial port was closed during write operation.");
 
                             var response = SendAndReceive(portCopy, toSend, 2000);
-                            if(response.Contains("pin_required:") && response.Contains(";100;1"))
+                            if (response.Contains("pin_required:") && response.Contains(";100;1"))
                             {
                                 // Ask the user for PIN on the UI thread using the PromptDialog helper
                                 string? pin = null;
@@ -612,7 +685,7 @@ namespace Digalox_Batch_Programmer
 
                                 try
                                 {
-                                    var pinResponse = SendAndReceive(portCopy, pinCmd,2000);
+                                    var pinResponse = SendAndReceive(portCopy, pinCmd, 2000);
                                     // Optionally inspect pinResponse for success/failure pin_required:1;101;0\r
                                     if (pinResponse.Contains("pin_required:") && pinResponse.Contains(";101;"))
                                     {
