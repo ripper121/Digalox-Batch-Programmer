@@ -163,7 +163,7 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(3, 2, 3, 2);
             Name = "Form1";
-            Text = "Digalox Batch Programmer v1.1";
+            Text = "Digalox Batch Programmer v1.2";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;
             statusStrip1.ResumeLayout(false);
